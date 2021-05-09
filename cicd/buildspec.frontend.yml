@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - npm install -g @angular/cli@~${angular_cli_version}
+
+  pre_build:
+    commands:
+      - npm install
+
+  build:
+    commands:
+      - ng build --prod
+      - aws s3 cp dist/mercurii-frontend s3://${s3_bucket_name}/ --recursive
