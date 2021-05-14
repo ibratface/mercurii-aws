@@ -1,14 +1,16 @@
 version: 0.2
 
 phases:
+  install:
+    commands:
+      - pip install docker-compose --upgrade
+      
   pre_build:
     commands:
       # take a database snapshot
       - aws rds create-db-snapshot --db-instance-identifier $DB_INSTANCE_ID --db-snapshot-identifier $DB_INSTANCE_ID-codebuild-migration-$CODEBUILD_START_TIME
-      - pip install docker-compose --upgrade
-      
+
   build:
     commands:
       # run flyway for db migration
       - docker-compose run migrate-prod
-

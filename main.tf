@@ -16,7 +16,37 @@ terraform {
 provider "aws" {
   profile = "terraform"
   region  = "us-west-1"
+
+  skip_requesting_account_id = false
 }
+
+#===============================================================================
+# Useful Variables
+#===============================================================================
+
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+data "aws_ecr_repository" "api" {
+  name = "mercurii-api"
+}
+
+locals {
+  db_username       = "mercurii"
+  db_default_schema = "mercurii"
+  db_default_db     = "mercurii"
+
+  db_src_url       = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-db"
+  frontend_src_url = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-frontend"
+  api_src_url      = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-api"
+  api_image_url    = "618105743745.dkr.ecr.us-west-1.amazonaws.com/mercurii-api"
+  api_registry_url = "${data.aws_ecr_repository.api.registry_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
+}
+
+#===============================================================================
+# Modules
+#===============================================================================
 
 module "network" {
   source = "./network"
@@ -29,15 +59,10 @@ module "security" {
   vpc_id = module.network.vpc_id
 }
 
-locals {
-  database_username       = "mercurii"
-  database_default_schema = "mercurii"
-}
-
 module "db" {
   source               = "./db"
   env                  = var.env
-  username             = local.database_username
+  username             = local.db_username
   db_subnet_group_name = module.network.database_subnet_group_name
   subnet_ids           = module.network.database_subnets
   security_group_ids   = [module.security.database_security_group_id]
@@ -48,17 +73,32 @@ module "frontend" {
   env    = var.env
 }
 
+module "api" {
+  source = "./api"
+  env    = var.env
+
+  role_arn  = module.security.api_role_arn
+  image_uri = data.aws_ecr_repository.api.repository_url
+}
+
 module "cicd" {
-  source             = "./cicd"
-  env                = var.env
-  
-  db_instance_id     = module.db.database_instance_id
-  db_endpoint        = module.db.database_endpoint
-  db_username        = local.database_username
-  db_password        = module.db.database_password
-  db_name            = "mercury"
-  db_default_schema  = local.database_default_schema
-  
+  source = "./cicd"
+  env    = var.env
+
+  migration_source_location = local.db_src_url
+  frontend_source_location  = local.frontend_src_url
+  api_source_location       = local.api_src_url
+  api_image_repository      = data.aws_ecr_repository.api.repository_url
+  api_image_registry        = local.api_registry_url
+  aws_region                = data.aws_region.current.name
+
+  db_instance_id    = module.db.database_instance_id
+  db_endpoint       = module.db.database_endpoint
+  db_username       = local.db_username
+  db_password       = module.db.database_password
+  db_name           = local.db_default_db
+  db_default_schema = local.db_default_schema
+
   vpc_id             = module.network.vpc_id
   database_subnets   = module.network.database_subnets
   security_group_ids = [module.security.codebuild_security_group_id]

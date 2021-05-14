@@ -1,10 +1,14 @@
+#===============================================================================
+# DB - Migration
+#===============================================================================
+
 resource "aws_codebuild_project" "mercurii-migration" {
   name        = "mercurii-migration"
   description = "Performs flyway migration"
 
   source {
     type      = "CODECOMMIT"
-    location  = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-db"
+    location  = var.migration_source_location
     buildspec = file("${path.module}/buildspec.migration.yml")
   }
 
@@ -73,16 +77,20 @@ resource "aws_codebuild_project" "mercurii-migration" {
   }
 }
 
+#===============================================================================
+# Frontend
+#===============================================================================
+
 resource "aws_codebuild_project" "mercurii-frontend" {
   name        = "mercurii-frontend"
   description = "Set up S3 public web server"
 
   source {
     type     = "CODECOMMIT"
-    location = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-frontend"
+    location = var.frontend_source_location
     buildspec = templatefile("${path.module}/buildspec.frontend.yml", {
       angular_cli_version = var.angular_cli_version
-      s3_bucket_name = var.s3_bucket_name
+      s3_bucket_name      = var.s3_bucket_name
     })
   }
 
@@ -104,47 +112,49 @@ resource "aws_codebuild_project" "mercurii-frontend" {
   }
 }
 
-# resource "aws_ecr_repository" "mercurii-api" {
-#   name                 = "mercurii-api"
-#   image_tag_mutability = "MUTABLE"
-#   image_scanning_configuration {
-#     scan_on_push = true
-#   }
-# }
+#===============================================================================
+# API
+#===============================================================================
 
-# resource "aws_codebuild_project" "mercurii-api" {
-#   name           = "mercurii-api"
-#   description    = "REST API for Mercurii"
+resource "aws_codebuild_project" "mercurii-api" {
+  name        = "mercurii-api"
+  description = "REST API for Mercurii"
 
-#   source {
-#     type            = "CODECOMMIT"
-#     location        = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-api"
-#   }
+  source {
+    type      = "CODECOMMIT"
+    location  = var.api_source_location
+    buildspec = file("${path.module}/buildspec.api.yml")
+  }
 
-#   service_role  = "${aws_iam_role.codebuild-mercurii.arn}"
+  service_role = var.codebuild_role_arn
 
-#   artifacts {
-#     type = "NO_ARTIFACTS"
-#   }
+  artifacts {
+    type = "NO_ARTIFACTS"
+  }
 
-#   environment {
-#     compute_type                = "BUILD_GENERAL1_SMALL"
-#     image                       = "aws/codebuild/standard:3.0"
-#     type                        = "LINUX_CONTAINER"
-#     image_pull_credentials_type = "CODEBUILD"
-#     privileged_mode             = true
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/standard:5.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    privileged_mode             = true
 
-#     environment_variable {
-#       name  = "IMAGE_REPOSITORY_URL"
-#       value = "${aws_ecr_repository.mercurii-api.repository_url}"
-#     }
+    environment_variable {
+      name  = "IMAGE_REPOSITORY_URL"
+      value = var.api_image_repository
+    }
 
-#     environment_variable {
-#       name  = "DB_INSTANCE"
-#       value = "${aws_db_instance.mercurii.identifier}"
-#     }
-#   }
+    environment_variable {
+      name  = "ECR_REGISTRY_ID"
+      value = var.api_image_registry
+    }
 
-#   tags = {
-#   }
-# }
+    environment_variable {
+      name  = "AWS_REGION"
+      value = var.aws_region
+    }
+  }
+
+  tags = {
+  }
+}

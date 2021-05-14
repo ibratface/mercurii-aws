@@ -1,3 +1,7 @@
+#===============================================================================
+# Security Groups
+#===============================================================================
+
 resource "aws_security_group" "codebuild" {
   name   = "CodeBuildSecurityGroup"
   vpc_id = var.vpc_id
@@ -28,6 +32,10 @@ resource "aws_security_group" "db" {
   }
 }
 
+#===============================================================================
+# Codebuild Role
+#===============================================================================
+
 resource "aws_iam_policy" "codebuild_vpc" {
   name   = "mercurii-codebuild-vpc"
   policy = file("${path.module}/codebuild-vpc-policy.json")
@@ -53,66 +61,49 @@ resource "aws_iam_policy" "codebuild_s3" {
   policy = file("${path.module}/codebuild-s3-policy.json")
 }
 
+resource "aws_iam_policy" "codebuild_ecr" {
+  name   = "mercurii-codebuild-ecr"
+  policy = file("${path.module}/codebuild-ecr-policy.json")
+}
+
 resource "aws_iam_role" "codebuild" {
-  name                = "mercurii-codebuild-role"
-  assume_role_policy  = file("${path.module}/codebuild-role-assume-policy.json")
+  name               = "mercurii-codebuild-role"
+  assume_role_policy = file("${path.module}/codebuild-role-assume-policy.json")
   managed_policy_arns = [
-    aws_iam_policy.codebuild_vpc.arn, 
-    aws_iam_policy.codebuild_log.arn, 
+    aws_iam_policy.codebuild_vpc.arn,
+    aws_iam_policy.codebuild_log.arn,
     aws_iam_policy.codebuild_codecommit.arn,
     aws_iam_policy.codebuild_rds.arn,
-    aws_iam_policy.codebuild_s3.arn
+    aws_iam_policy.codebuild_s3.arn,
+    aws_iam_policy.codebuild_ecr.arn
   ]
 }
 
-# resource "aws_iam_role_policy" "codebuild-mercurii" {
-#   name = "codebuild-mercurii-role-policy"
-#   role = aws_iam_role.codebuild-mercurii.name
+#===============================================================================
+# API Role
+#===============================================================================
 
-#   policy = <<POLICY
-# {
-#   "Version": "2012-10-17",
-#   "Statement": [
-#     {
-#       "Effect": "Allow",
-#       "Action": [
-#         "logs:*",
-#         "codecommit:BatchGet*",
-#         "codecommit:BatchDescribe*",
-#         "codecommit:Describe*",
-#         "codecommit:EvaluatePullRequestApprovalRules",
-#         "codecommit:Get*",
-#         "codecommit:List*",
-#         "codecommit:GitPull",
-#         "ec2:*",
-#         "rds:CreateDBSnapshot",
-#         "rds-data:ExecuteSql",
-#         "rds-data:ExecuteStatement",
-#         "rds-data:BatchExecuteStatement",
-#         "rds-data:BeginTransaction",
-#         "rds-data:CommitTransaction",
-#         "rds-data:RollbackTransaction",
-#         "tag:GetResources",
-#         "ecr:GetAuthorizationToken",
-#         "ecr:BatchCheckLayerAvailability",
-#         "ecr:GetDownloadUrlForLayer",
-#         "ecr:GetRepositoryPolicy",
-#         "ecr:DescribeRepositories",
-#         "ecr:ListImages",
-#         "ecr:DescribeImages",
-#         "ecr:BatchGetImage",
-#         "ecr:GetLifecyclePolicy",
-#         "ecr:GetLifecyclePolicyPreview",
-#         "ecr:ListTagsForResource",
-#         "ecr:DescribeImageScanFindings",
-#         "ecr:InitiateLayerUpload",
-#         "ecr:UploadLayerPart",
-#         "ecr:CompleteLayerUpload",
-#         "ecr:PutImage"
-#       ],
-#       "Resource": "*"
-#     }
-#   ]    
-# }  
-# POLICY
-# }
+resource "aws_iam_policy" "api_rds" {
+  name   = "mercurii-api-rds"
+  policy = file("${path.module}/api-rds-policy.json")
+}
+
+resource "aws_iam_policy" "api_logs" {
+  name   = "mercurii-api-logs"
+  policy = file("${path.module}/api-logs-policy.json")
+}
+
+resource "aws_iam_policy" "api_xray" {
+  name   = "mercurii-api-xray"
+  policy = file("${path.module}/api-xray-policy.json")
+}
+
+resource "aws_iam_role" "api" {
+  name               = "mercurii-api-role"
+  assume_role_policy = file("${path.module}/api-role-assume-policy.json")
+  managed_policy_arns = [
+    aws_iam_policy.api_rds.arn,
+    aws_iam_policy.api_logs.arn,
+    aws_iam_policy.api_xray.arn,
+  ]
+}

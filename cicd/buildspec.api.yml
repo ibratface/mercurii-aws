@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - pip install docker-compose --upgrade
+
+  pre_build:
+    commands:
+      # login to ecr
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY_ID
+      
+  build:
+    commands:
+      # build api docker image
+      - docker-compose build lambda
+
+  post_build:
+    commands:    
+      # push image up to ecr
+      - docker-compose push lambda

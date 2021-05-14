@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "rds-data:ExecuteSql",
+        "rds-data:ExecuteStatement",
+        "rds-data:BatchExecuteStatement",
+        "rds-data:BeginTransaction",
+        "rds-data:CommitTransaction",
+        "rds-data:RollbackTransaction"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    }
+  ]
+}

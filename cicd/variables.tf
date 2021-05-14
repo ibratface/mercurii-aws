@@ -2,6 +2,26 @@ variable "env" {
   type = string
 }
 
+variable "migration_source_location" {
+  type = string
+}
+
+variable "frontend_source_location" {
+  type = string
+}
+
+variable "api_source_location" {
+  type = string
+}
+
+variable "api_image_repository" {
+  type = string
+}
+
+variable "api_image_registry" {
+  type = string
+}
+
 variable "db_endpoint" {
   type = string
 }
@@ -48,5 +68,9 @@ variable "angular_cli_version" {
 }
 
 variable "s3_bucket_name" {
+  type = string
+}
+
+variable "aws_region" {
   type = string
 }

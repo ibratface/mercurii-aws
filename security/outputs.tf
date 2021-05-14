@@ -9,3 +9,7 @@ output "database_security_group_id" {
 output "codebuild_role_arn" {
   value = aws_iam_role.codebuild.arn
 }
+
+output "api_role_arn" {
+  value = aws_iam_role.api.arn
+}
