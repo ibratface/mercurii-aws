@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "frontend" {
-  bucket = "frontend-${var.env}.${var.domain}.com"
+  bucket = "www.${var.domain}.com"
   acl    = "public-read"
 
   website {

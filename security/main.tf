@@ -2,8 +2,23 @@
 # Security Groups
 #===============================================================================
 
+# Allow internet access and db migration from codebuild
 resource "aws_security_group" "codebuild" {
   name   = "CodeBuildSecurityGroup"
+  vpc_id = var.vpc_id
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
+# Allow db access from lambda
+resource "aws_security_group" "lambda" {
+  name   = "LambdaSecurityGroup"
   vpc_id = var.vpc_id
 
   egress {
@@ -23,14 +38,14 @@ resource "aws_security_group" "db" {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [aws_security_group.codebuild.id]
-    # cidr_blocks      = ["0.0.0.0/0"]
-    # ipv6_cidr_blocks = ["::/0"]
+    security_groups = [aws_security_group.codebuild.id, aws_security_group.lambda.id]
   }
 
   tags = {
   }
 }
+
+
 
 #===============================================================================
 # Codebuild Role
@@ -98,6 +113,11 @@ resource "aws_iam_policy" "api_xray" {
   policy = file("${path.module}/api-xray-policy.json")
 }
 
+resource "aws_iam_policy" "api" {
+  name   = "MercuriiAPIPolicy"
+  policy = file("${path.module}/api-policy.json")
+}
+
 resource "aws_iam_role" "api" {
   name               = "mercurii-api-role"
   assume_role_policy = file("${path.module}/api-role-assume-policy.json")
@@ -105,5 +125,6 @@ resource "aws_iam_role" "api" {
     aws_iam_policy.api_rds.arn,
     aws_iam_policy.api_logs.arn,
     aws_iam_policy.api_xray.arn,
+    aws_iam_policy.api.arn
   ]
 }

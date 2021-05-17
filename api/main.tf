@@ -9,12 +9,20 @@ resource "aws_lambda_function" "mercurii_api" {
   package_type = "Image"
   image_uri    = "${var.image_uri}:latest"
 
-  # tracing_config {
-  #   mode = "Active"
-  # }
+  vpc_config {
+    security_group_ids = var.lambda_security_groups
+    subnet_ids         = var.lambda_subnets
+  }
 
-  # environment {
-  # }
+  environment {
+    variables = {
+      "POSTGRES_HOST"     = var.db_address
+      "POSTGRES_PORT"     = var.db_port
+      "POSTGRES_DB"       = var.db_name
+      "POSTGRES_USER"     = var.db_username
+      "POSTGRES_PASSWORD" = var.db_password
+    }
+  }
 }
 
 resource "aws_cloudwatch_log_group" "mercurii_api_gateway" {
@@ -25,9 +33,13 @@ resource "aws_apigatewayv2_api" "mercurii_api" {
   name          = "mercurii-api"
   protocol_type = "HTTP"
 
-  # cors_configuration {
-  #   allow_origins = ["*"]
-  # }
+  cors_configuration {
+    allow_origins = var.cors_allowed_origins
+    allow_methods = ["*"]
+    allow_headers = ["*"]
+  }
+
+  disable_execute_api_endpoint = true
 }
 
 resource "aws_apigatewayv2_integration" "mercurii_api" {
@@ -36,7 +48,7 @@ resource "aws_apigatewayv2_integration" "mercurii_api" {
   integration_type = "AWS_PROXY"
   integration_uri  = aws_lambda_function.mercurii_api.invoke_arn
 
-  # payload_format_version = "2.0"
+  payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "mercurii_api" {
@@ -64,61 +76,8 @@ resource "aws_lambda_permission" "lambda_permission" {
   source_arn    = "${aws_apigatewayv2_api.mercurii_api.execution_arn}/*"
 }
 
-data "aws_acm_certificate" "mercurii" {
-  domain = "api.mercur-ii.com"
-}
-
-resource "aws_apigatewayv2_domain_name" "mercurii" {
-  domain_name = "api.mercur-ii.com"
-
-  domain_name_configuration {
-    certificate_arn = data.aws_acm_certificate.mercurii.arn
-    endpoint_type   = "REGIONAL"
-    security_policy = "TLS_1_2"
-  }
-}
-
 resource "aws_apigatewayv2_api_mapping" "mercurii" {
   api_id      = aws_apigatewayv2_api.mercurii_api.id
-  domain_name = aws_apigatewayv2_domain_name.mercurii.id
+  domain_name = var.api_domain_name
   stage       = aws_apigatewayv2_stage.mercurii_api.id
 }
-
-# module "api_gateway" {
-#   source = "terraform-aws-modules/apigateway-v2/aws"
-
-#   name          = "mercurii-${var.env}"
-#   description   = "Mercurii HTTP API Gateway"
-#   protocol_type = "HTTP"
-
-#   create_api_domain_name           = false
-#   create_default_stage             = false
-#   create_default_stage_api_mapping = true
-#   create_routes_and_integrations   = true
-
-#   # Custom domain
-#   # domain_name                 = "terraform-aws-modules.modules.tf"
-#   # domain_name_certificate_arn = "arn:aws:acm:eu-west-1:052235179155:certificate/2b3a7ed9-05e1-4f9e-952b-27744ba06da6"
-
-#   # Access logs
-#   default_stage_access_log_destination_arn = aws_cloudwatch_log_group.mercurii_api_gateway.arn
-#   default_stage_access_log_format          = "$context.identity.sourceIp - - [$context.requestTime] \"$context.httpMethod $context.routeKey $context.protocol\" $context.status $context.responseLength $context.requestId $context.integrationErrorMessage"
-
-#   target = aws_lambda_function.mercurii.arn
-#   # Routes and integrations
-#   # integrations = {
-#   #   "POST /" = {
-#   #     lambda_arn             = "arn:aws:lambda:eu-west-1:052235179155:function:my-function"
-#   #     payload_format_version = "2.0"
-#   #     timeout_milliseconds   = 12000
-#   #   }
-
-#   #   "$default" = {
-#   #     lambda_arn = aws_lambda_function.mercurii.arn
-#   #   }
-#   # }
-
-#   tags = {
-
-#   }
-# }

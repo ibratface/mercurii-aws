@@ -4,5 +4,5 @@ variable "env" {
 
 variable "domain" {
   type = string
-  default = "mercurii"
+  default = "mercur-ii"
 }

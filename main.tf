@@ -40,8 +40,11 @@ locals {
   db_src_url       = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-db"
   frontend_src_url = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-frontend"
   api_src_url      = "https://git-codecommit.us-west-1.amazonaws.com/v1/repos/mercurii-api"
-  api_image_url    = "618105743745.dkr.ecr.us-west-1.amazonaws.com/mercurii-api"
-  api_registry_url = "${data.aws_ecr_repository.api.registry_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
+
+  api_image_url            = "618105743745.dkr.ecr.us-west-1.amazonaws.com/mercurii-api"
+  api_registry_url         = "${data.aws_ecr_repository.api.registry_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
+  api_domain_name          = "api.mercur-ii.com"
+  api_cors_allowed_origins = ["https://www.mercur-ii.com"]
 }
 
 #===============================================================================
@@ -79,6 +82,18 @@ module "api" {
 
   role_arn  = module.security.api_role_arn
   image_uri = data.aws_ecr_repository.api.repository_url
+
+  lambda_subnets         = module.network.private_subnets
+  lambda_security_groups = [module.security.lambda_security_group_id]
+
+  db_address = module.db.database_instance_address
+  db_port     = module.db.database_instance_port
+  db_username = local.db_username
+  db_password = module.db.database_password
+  db_name     = local.db_default_db
+
+  api_domain_name      = local.api_domain_name
+  cors_allowed_origins = local.api_cors_allowed_origins
 }
 
 module "cicd" {

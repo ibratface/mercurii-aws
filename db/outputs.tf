@@ -10,3 +10,11 @@ output "database_endpoint" {
 output "database_instance_id" {
   value = module.db.db_instance_id
 }
+
+output "database_instance_address" {
+  value = module.db.db_instance_address
+}
+
+output "database_instance_port" {
+  value = module.db.db_instance_port
+}

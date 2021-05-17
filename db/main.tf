@@ -8,7 +8,7 @@ module "db" {
   source  = "terraform-aws-modules/rds/aws"
   version = ">= 3.0.0"
 
-  identifier           = "mercurii-${var.env}"
+  identifier = "mercurii-${var.env}"
   # name                 = "mercurii${var.env}"
   engine               = "postgres"
   engine_version       = "11"
@@ -23,7 +23,7 @@ module "db" {
   storage_encrypted     = true
 
   db_subnet_group_name = var.db_subnet_group_name
-  publicly_accessible = true
+  publicly_accessible  = false
 
   username = var.username
   password = random_password.password.result
